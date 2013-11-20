@@ -14,8 +14,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
- * Boston, MA 02110-1301, USA.
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #include "config.h"
@@ -83,30 +83,15 @@ srunner_fprint_results (FILE * file, SRunner * sr, enum print_output print_mode)
 
   resultlst = sr->resultlst;
 
-  for (list_front (resultlst); !list_at_end (resultlst);
-      list_advance (resultlst)) {
-    TestResult *tr = list_val (resultlst);
+  for (check_list_front (resultlst); !check_list_at_end (resultlst);
+      check_list_advance (resultlst)) {
+    TestResult *tr = check_list_val (resultlst);
     tr_fprint (file, tr, print_mode);
   }
   return;
 }
 
 void
-tr_fprint (FILE * file, TestResult * tr, enum print_output print_mode)
-{
-  if (print_mode == CK_ENV) {
-    print_mode = get_env_printmode ();
-  }
-
-  if ((print_mode >= CK_VERBOSE && tr->rtype == CK_PASS) ||
-      (tr->rtype != CK_PASS && print_mode >= CK_NORMAL)) {
-    char *trstr = tr_str (tr);
-    fprintf (file, "%s\n", trstr);
-    free (trstr);
-  }
-}
-
-static void
 fprint_xml_esc (FILE * file, const char *str)
 {
   for (; *str != '\0'; str++) {
@@ -139,23 +124,38 @@ fprint_xml_esc (FILE * file, const char *str)
 }
 
 void
+tr_fprint (FILE * file, TestResult * tr, enum print_output print_mode)
+{
+  if (print_mode == CK_ENV) {
+    print_mode = get_env_printmode ();
+  }
+
+  if ((print_mode >= CK_VERBOSE && tr->rtype == CK_PASS) ||
+      (tr->rtype != CK_PASS && print_mode >= CK_NORMAL)) {
+    char *trstr = tr_str (tr);
+    fprintf (file, "%s\n", trstr);
+    free (trstr);
+  }
+}
+
+void
 tr_xmlprint (FILE * file, TestResult * tr,
     enum print_output print_mode CK_ATTRIBUTE_UNUSED)
 {
   char result[10];
-  char *path_name;
-  char *file_name;
-  char *slash;
+  char *path_name = (char *) "";
+  char *file_name = (char *) "";
+  char *slash = NULL;
 
   switch (tr->rtype) {
     case CK_PASS:
-      strcpy (result, "success");
+      snprintf (result, sizeof (result), "%s", "success");
       break;
     case CK_FAILURE:
-      strcpy (result, "failure");
+      snprintf (result, sizeof (result), "%s", "failure");
       break;
     case CK_ERROR:
-      strcpy (result, "error");
+      snprintf (result, sizeof (result), "%s", "error");
       break;
     case CK_TEST_RESULT_INVALID:
     default:
@@ -163,14 +163,16 @@ tr_xmlprint (FILE * file, TestResult * tr,
       break;
   }
 
-  slash = strrchr (tr->file, '/');
-  if (slash == NULL) {
-    path_name = (char *) ".";
-    file_name = tr->file;
-  } else {
-    path_name = strdup (tr->file);
-    path_name[slash - tr->file] = 0;    /* Terminate the temporary string. */
-    file_name = slash + 1;
+  if (tr->file) {
+    slash = strrchr (tr->file, '/');
+    if (slash == NULL) {
+      path_name = (char *) ".";
+      file_name = tr->file;
+    } else {
+      path_name = strdup (tr->file);
+      path_name[slash - tr->file] = 0;  /* Terminate the temporary string. */
+      file_name = slash + 1;
+    }
   }
 
 
@@ -179,6 +181,9 @@ tr_xmlprint (FILE * file, TestResult * tr,
   fprintf (file, "      <fn>%s:%d</fn>\n", file_name, tr->line);
   fprintf (file, "      <id>%s</id>\n", tr->tname);
   fprintf (file, "      <iteration>%d</iteration>\n", tr->iter);
+  fprintf (file, "      <duration>%d.%06d</duration>\n",
+      tr->duration < 0 ? -1 : tr->duration / 1000000,
+      tr->duration < 0 ? 0 : tr->duration % 1000000);
   fprintf (file, "      <description>");
   fprint_xml_esc (file, tr->tcname);
   fprintf (file, "</description>\n");

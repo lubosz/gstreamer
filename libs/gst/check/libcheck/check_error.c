@@ -14,8 +14,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
- * Boston, MA 02110-1301, USA.
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #include "config.h"
@@ -25,8 +25,14 @@
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
+#include <setjmp.h>
 
 #include "check_error.h"
+
+/**
+ * Storage for setjmp/longjmp context information used in NOFORK mode
+ */
+jmp_buf error_jmp_buffer;
 
 
 /* FIXME: including a colon at the end is a bad way to indicate an error */

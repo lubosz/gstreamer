@@ -14,18 +14,22 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
- * Boston, MA 02110-1301, USA.
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #ifndef CHECK_IMPL_H
 #define CHECK_IMPL_H
 
-
 /* This header should be included by any module that needs
    to know the implementation details of the check structures
-   Include stdio.h & list.h before this header
+   Include stdio.h, time.h, & list.h before this header
 */
+
+/** calculate the difference in useconds out of two "struct timespec"s */
+#define DIFF_IN_USEC(begin, end) \
+  ( (((end).tv_sec - (begin).tv_sec) * 1000000) + \
+    ((end).tv_nsec/1000) - ((begin).tv_nsec/1000) )
 
 typedef struct TF
 {
@@ -52,7 +56,7 @@ typedef struct Fixture
 struct TCase
 {
   const char *name;
-  int timeout;
+  struct timespec timeout;
   List *tflst;                  /* list of test functions */
   List *unch_sflst;
   List *unch_tflst;
@@ -74,6 +78,7 @@ struct TestResult
   char *file;                   /* File where the test occured */
   int line;                     /* Line number where the test occurred */
   int iter;                     /* The iteration value for looping tests */
+  int duration;                 /* duration of this test */
   const char *tcname;           /* Test case that generated the result */
   const char *tname;            /* Test that generated the result */
   char *msg;                    /* Failure message */
@@ -121,5 +126,7 @@ struct SRunner
 
 void set_fork_status (enum fork_status fstat);
 enum fork_status cur_fork_status (void);
+
+clockid_t check_get_clockid (void);
 
 #endif /* CHECK_IMPL_H */
