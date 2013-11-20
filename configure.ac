@@ -229,6 +229,22 @@ if test "x$USE_POISONING" = xyes; then
     [Define if we should poison deallocated memory])
 fi
 
+AC_ARG_ENABLE(fork,
+  AS_HELP_STRING([--enable-fork],[enable support for fork @<:@default=autodetect@:>@]),
+  [
+    case "${enableval}" in
+      yes) USE_FORK=yes ;;
+      no)  USE_FORK=no ;;
+      *)   AC_MSG_ERROR(bad value ${enableval} for --enable-fork) ;;
+    esac
+  ],
+  [USE_FORK=yes ])
+
+# Checks for functions not available in Windows
+if test "x$USE_FORK" = xyes; then
+  AC_DEFINE(HAVE_FORK, 1, [Define if we have fork])
+fi
+
 dnl *** checks for platform ***
 
 dnl * hardware/architecture *
