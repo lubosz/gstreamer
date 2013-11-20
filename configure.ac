@@ -229,6 +229,31 @@ if test "x$USE_POISONING" = xyes; then
     [Define if we should poison deallocated memory])
 fi
 
+AC_ARG_ENABLE(fork,
+  AS_HELP_STRING([--enable-fork],[enable support for fork @<:@default=autodetect@:>@]),
+  [
+    case "${enableval}" in
+      yes) USE_FORK=yes ;;
+      no)  USE_FORK=no ;;
+      *)   AC_MSG_ERROR(bad value ${enableval} for --enable-fork) ;;
+    esac
+  ],
+  [USE_FORK=yes ])
+AM_CONDITIONAL(HAVE_FORK, test "x$USE_FORK" = "xyes")
+
+if test "x$USE_FORK" = xyes; then
+  AC_CHECK_FUNCS([fork], HAVE_FORK=1, HAVE_FORK=0)
+  AM_CONDITIONAL(HAVE_FORK, [test "$HAVE_FORK" = 1])
+else
+  HAVE_FORK=0
+fi
+
+dnl look for timer functions required by libcheck
+if test "x$BUILD_TESTS" = "xyes"; then
+  AC_SEARCH_LIBS([timer_create], [rt], [], [
+    AC_MSG_WARN([unable to find the timer_create() function])
+  ])
+fi
 dnl *** checks for platform ***
 
 dnl * hardware/architecture *
