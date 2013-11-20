@@ -239,11 +239,12 @@ AC_ARG_ENABLE(fork,
     esac
   ],
   [USE_FORK=yes ])
-AM_CONDITIONAL(HAVE_FORK, test "x$USE_FORK" = "xyes")
 
-# Checks for functions not available in Windows
 if test "x$USE_FORK" = xyes; then
-  AC_DEFINE(HAVE_FORK, 1, [Define if we have fork])
+  AC_CHECK_FUNCS([fork], HAVE_FORK=1, HAVE_FORK=0)
+  AM_CONDITIONAL(HAVE_FORK, $HAVE_FORK)
+else
+  HAVE_FORK=0
 fi
 
 dnl *** checks for platform ***
