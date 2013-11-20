@@ -35,8 +35,8 @@ enum
 
 struct List
 {
-  int n_elts;
-  int max_elts;
+  unsigned int n_elts;
+  unsigned int max_elts;
   int current;                  /* pointer to the current node */
   int last;                     /* pointer to the node before END */
   const void **data;
@@ -64,7 +64,7 @@ check_list_create (void)
 }
 
 void
-list_add_front (List * lp, const void *val)
+check_list_add_front (List * lp, const void *val)
 {
   if (lp == NULL)
     return;
@@ -77,7 +77,7 @@ list_add_front (List * lp, const void *val)
 }
 
 void
-list_add_end (List * lp, const void *val)
+check_list_add_end (List * lp, const void *val)
 {
   if (lp == NULL)
     return;
@@ -89,7 +89,7 @@ list_add_end (List * lp, const void *val)
 }
 
 int
-list_at_end (List * lp)
+check_list_at_end (List * lp)
 {
   if (lp->current == -1)
     return 1;
@@ -98,7 +98,7 @@ list_at_end (List * lp)
 }
 
 void
-list_front (List * lp)
+check_list_front (List * lp)
 {
   if (lp->current == -1)
     return;
@@ -107,7 +107,7 @@ list_front (List * lp)
 
 
 void
-list_free (List * lp)
+check_list_free (List * lp)
 {
   if (lp == NULL)
     return;
@@ -117,7 +117,7 @@ list_free (List * lp)
 }
 
 void *
-list_val (List * lp)
+check_list_val (List * lp)
 {
   if (lp == NULL)
     return NULL;
@@ -128,23 +128,23 @@ list_val (List * lp)
 }
 
 void
-list_advance (List * lp)
+check_list_advance (List * lp)
 {
   if (lp == NULL)
     return;
-  if (list_at_end (lp))
+  if (check_list_at_end (lp))
     return;
   lp->current++;
 }
 
 
 void
-list_apply (List * lp, void (*fp) (void *))
+check_list_apply (List * lp, void (*fp) (void *))
 {
   if (lp == NULL || fp == NULL)
     return;
 
-  for (list_front (lp); !list_at_end (lp); list_advance (lp))
-    fp (list_val (lp));
+  for (check_list_front (lp); !check_list_at_end (lp); check_list_advance (lp))
+    fp (check_list_val (lp));
 
 }
