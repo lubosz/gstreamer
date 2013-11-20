@@ -27,7 +27,7 @@
 #endif
 #include <time.h>
 #include <check.h>
-#if HAVE_SUBUNIT_CHILD_H
+#if ENABLE_SUBUNIT
 #include <subunit/child.h>
 #endif
 
@@ -66,13 +66,17 @@ srunner_set_log (SRunner * sr, const char *fname)
 int
 srunner_has_log (SRunner * sr)
 {
-  return sr->log_fname != NULL;
+  return srunner_log_fname (sr) != NULL;
 }
 
 const char *
 srunner_log_fname (SRunner * sr)
 {
-  return sr->log_fname;
+  /* check if log filename have been set explicitly */
+  if (sr->log_fname != NULL)
+    return sr->log_fname;
+
+  return getenv ("CK_LOG_FILE_NAME");
 }
 
 
@@ -87,13 +91,18 @@ srunner_set_xml (SRunner * sr, const char *fname)
 int
 srunner_has_xml (SRunner * sr)
 {
-  return sr->xml_fname != NULL;
+  return srunner_xml_fname (sr) != NULL;
 }
 
 const char *
 srunner_xml_fname (SRunner * sr)
 {
-  return sr->xml_fname;
+  /* check if XML log filename have been set explicitly */
+  if (sr->xml_fname != NULL) {
+    return sr->xml_fname;
+  }
+
+  return getenv ("CK_XML_LOG_FILE_NAME");
 }
 
 void
@@ -110,7 +119,7 @@ srunner_register_lfun (SRunner * sr, FILE * lfile, int close,
   l->lfun = lfun;
   l->close = close;
   l->mode = printmode;
-  list_add_end (sr->loglst, l);
+  check_list_add_end (sr->loglst, l);
   return;
 }
 
@@ -158,8 +167,8 @@ srunner_send_evt (SRunner * sr, void *obj, enum cl_event evt)
   List *l;
   Log *lg;
   l = sr->loglst;
-  for (list_front (l); !list_at_end (l); list_advance (l)) {
-    lg = list_val (l);
+  for (check_list_front (l); !check_list_at_end (l); check_list_advance (l)) {
+    lg = check_list_val (l);
     fflush (lg->lfile);
     lg->lfun (sr, lg->lfile, lg->mode, obj, evt);
     fflush (lg->lfile);
@@ -202,7 +211,6 @@ stdout_lfun (SRunner * sr, FILE * file, enum print_output printmode,
       }
       break;
     case CLEND_S:
-      s = obj;
       break;
     case CLSTART_T:
       break;
@@ -239,7 +247,6 @@ lfile_lfun (SRunner * sr, FILE * file,
       srunner_fprint (file, sr, CK_MINIMAL);
       break;
     case CLEND_S:
-      s = obj;
       break;
     case CLSTART_T:
       break;
@@ -261,13 +268,15 @@ xml_lfun (SRunner * sr CK_ATTRIBUTE_UNUSED, FILE * file,
 {
   TestResult *tr;
   Suite *s;
-  static struct timeval inittv, endtv;
+  static struct timespec ts_start = { 0, 0 };
   static char t[sizeof "yyyy-mm-dd hh:mm:ss"] = { 0 };
 
   if (t[0] == 0) {
+    struct timeval inittv;
     struct tm now;
     gettimeofday (&inittv, NULL);
-    localtime_r (&(inittv.tv_sec), &now);
+    clock_gettime (check_get_clockid (), &ts_start);
+    localtime_r ((const time_t *) &(inittv.tv_sec), &now);
     strftime (t, sizeof ("yyyy-mm-dd hh:mm:ss"), "%Y-%m-%d %H:%M:%S", &now);
   }
 
@@ -275,28 +284,37 @@ xml_lfun (SRunner * sr CK_ATTRIBUTE_UNUSED, FILE * file,
     case CLINITLOG_SR:
       fprintf (file, "<?xml version=\"1.0\"?>\n");
       fprintf (file,
+          "<?xml-stylesheet type=\"text/xsl\" href=\"http://check.sourceforge.net/xml/check_unittest.xslt\"?>\n");
+      fprintf (file,
           "<testsuites xmlns=\"http://check.sourceforge.net/ns\">\n");
       fprintf (file, "  <datetime>%s</datetime>\n", t);
       break;
     case CLENDLOG_SR:
-      gettimeofday (&endtv, NULL);
-      fprintf (file, "  <duration>%f</duration>\n",
-          (endtv.tv_sec + (float) (endtv.tv_usec) / 1000000) -
-          (inittv.tv_sec + (float) (inittv.tv_usec / 1000000)));
+    {
+      struct timespec ts_end = { 0, 0 };
+      unsigned int duration;
+
+      /* calculate time the test were running */
+      clock_gettime (check_get_clockid (), &ts_end);
+      duration = DIFF_IN_USEC (ts_start, ts_end);
+      fprintf (file, "  <duration>%u.%06u</duration>\n",
+          duration / 1000000, duration % 1000000);
       fprintf (file, "</testsuites>\n");
+    }
       break;
     case CLSTART_SR:
       break;
     case CLSTART_S:
       s = obj;
       fprintf (file, "  <suite>\n");
-      fprintf (file, "    <title>%s</title>\n", s->name);
+      fprintf (file, "    <title>");
+      fprint_xml_esc (file, s->name);
+      fprintf (file, "</title>\n");
       break;
     case CLEND_SR:
       break;
     case CLEND_S:
       fprintf (file, "  </suite>\n");
-      s = obj;
       break;
     case CLSTART_T:
       break;
@@ -316,7 +334,6 @@ subunit_lfun (SRunner * sr, FILE * file, enum print_output printmode,
     void *obj, enum cl_event evt)
 {
   TestResult *tr;
-  Suite *s;
   char const *name;
 
   /* assert(printmode == CK_SUBUNIT); */
@@ -329,7 +346,6 @@ subunit_lfun (SRunner * sr, FILE * file, enum print_output printmode,
     case CLSTART_SR:
       break;
     case CLSTART_S:
-      s = obj;
       break;
     case CLEND_SR:
       if (printmode > CK_SILENT) {
@@ -338,7 +354,6 @@ subunit_lfun (SRunner * sr, FILE * file, enum print_output printmode,
       }
       break;
     case CLEND_S:
-      s = obj;
       break;
     case CLSTART_T:
       name = obj;
@@ -377,7 +392,7 @@ srunner_open_lfile (SRunner * sr)
 {
   FILE *f = NULL;
   if (srunner_has_log (sr)) {
-    f = fopen (sr->log_fname, "w");
+    f = fopen (srunner_log_fname (sr), "w");
     if (f == NULL)
       eprintf ("Error in call to fopen while opening log file %s:", __FILE__,
           __LINE__ - 2, sr->log_fname);
@@ -390,7 +405,7 @@ srunner_open_xmlfile (SRunner * sr)
 {
   FILE *f = NULL;
   if (srunner_has_xml (sr)) {
-    f = fopen (sr->xml_fname, "w");
+    f = fopen (srunner_xml_fname (sr), "w");
     if (f == NULL)
       eprintf ("Error in call to fopen while opening xml file %s:", __FILE__,
           __LINE__ - 2, sr->xml_fname);
@@ -431,8 +446,8 @@ srunner_end_logging (SRunner * sr)
   srunner_send_evt (sr, NULL, CLENDLOG_SR);
 
   l = sr->loglst;
-  for (list_front (l); !list_at_end (l); list_advance (l)) {
-    Log *lg = list_val (l);
+  for (check_list_front (l); !check_list_at_end (l); check_list_advance (l)) {
+    Log *lg = check_list_val (l);
     if (lg->close) {
       rval = fclose (lg->lfile);
       if (rval != 0)
@@ -441,6 +456,6 @@ srunner_end_logging (SRunner * sr)
     }
     free (lg);
   }
-  list_free (l);
+  check_list_free (l);
   sr->loglst = NULL;
 }
