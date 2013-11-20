@@ -22,7 +22,8 @@
 #define CHECK_PACK_H
 
 
-enum ck_msg_type {
+enum ck_msg_type
+{
   CK_MSG_CTX,
   CK_MSG_FAIL,
   CK_MSG_LOC,
@@ -34,7 +35,7 @@ typedef struct CtxMsg
   enum ck_result_ctx ctx;
 } CtxMsg;
 
-typedef struct LocMsg 
+typedef struct LocMsg
 {
   int line;
   char *file;
@@ -47,9 +48,9 @@ typedef struct FailMsg
 
 typedef union
 {
-  CtxMsg  ctx_msg;
+  CtxMsg ctx_msg;
   FailMsg fail_msg;
-  LocMsg  loc_msg;
+  LocMsg loc_msg;
 } CheckMsg;
 
 typedef struct RcvMsg
@@ -63,13 +64,13 @@ typedef struct RcvMsg
   char *msg;
 } RcvMsg;
 
-void rcvmsg_free (RcvMsg *rmsg);
+void rcvmsg_free (RcvMsg * rmsg);
 
-  
-int pack (enum ck_msg_type type, char **buf, CheckMsg *msg);
-int upack (char *buf, CheckMsg *msg, enum ck_msg_type *type);
 
-void ppack (int fdes, enum ck_msg_type type, CheckMsg *msg);
+int pack (enum ck_msg_type type, char **buf, CheckMsg * msg);
+int upack (char *buf, CheckMsg * msg, enum ck_msg_type *type);
+
+void ppack (int fdes, enum ck_msg_type type, CheckMsg * msg);
 RcvMsg *punpack (int fdes);
 
 
