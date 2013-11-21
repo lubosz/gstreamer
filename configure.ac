@@ -242,7 +242,7 @@ AC_ARG_ENABLE(fork,
 
 if test "x$USE_FORK" = xyes; then
   AC_CHECK_FUNCS([fork], HAVE_FORK=1, HAVE_FORK=0)
-  AM_CONDITIONAL(HAVE_FORK, $HAVE_FORK)
+  AM_CONDITIONAL(HAVE_FORK, [test "$HAVE_FORK" = 1])
 else
   HAVE_FORK=0
 fi
