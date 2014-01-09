@@ -27,7 +27,6 @@
 #include <signal.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <math.h>
 
 #include <gst/check/internal-check.h>
