@@ -247,6 +247,12 @@ else
   HAVE_FORK=0
 fi
 
+dnl look for timer functions required by libcheck
+if test "x$BUILD_TESTS" = "xyes"; then
+  AC_SEARCH_LIBS([timer_create], [rt], [], [
+    AC_MSG_ERROR([unable to find the timer_create() function])
+  ])
+fi
 dnl *** checks for platform ***
 
 dnl * hardware/architecture *
